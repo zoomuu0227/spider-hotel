@@ -2,6 +2,7 @@ import { Input, Button, Space, message, Table, Image, Modal, Spin } from "antd";
 import type { ColumnsType } from "antd/es/table";
 import { useState } from "react";
 import citys from "../../config/city.ts";
+import * as XLSX from "xlsx";
 
 interface DataType {
   name: string;
@@ -122,6 +123,11 @@ function Index() {
       messageApi.error("请选择导出数据");
       return;
     }
+    const fileName = city + area + ".xlsx";
+    const worksheet = XLSX.utils.json_to_sheet(selectDatas);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, worksheet, 'Sheet1');
+    XLSX.writeFile(wb, fileName);
   };
   return (
     <Spin spinning={spinning}>
@@ -145,9 +151,11 @@ function Index() {
           获取
         </Button>
       </Space>
-      <div style={{
-        padding: '10px 0'
-      }}>
+      <div
+        style={{
+          padding: "10px 0",
+        }}
+      >
         <Button type="dashed" onClick={exportData}>
           导出
         </Button>
