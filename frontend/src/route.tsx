@@ -1,10 +1,11 @@
 import { ReactNode } from "react";
 import Home from "./pages/home/index";
+import Tujia from "./pages/tools/tujia.tsx";
 import { BugOutlined, SendOutlined } from "@ant-design/icons";
 
 export type MenuItemType = {
   path: string;
-  Component: (() => ReactNode) | string | null;
+  Component: (() => ReactNode)  | null;
   title: string;
   hide?: boolean;
   icon?: ReactNode;
@@ -27,7 +28,7 @@ const routes: MenuItemType[] = [
       {
         path: "tujia",
         title: "途家",
-        Component: "/tools/tujia",
+        Component: Tujia,
         children: [],
       },
     ],

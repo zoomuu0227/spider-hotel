@@ -107,14 +107,20 @@ function Index() {
       messageApi.error("城市名不正确");
       return;
     }
-    const url = `http://192.168.3.174:8088/crawl?id=${cityId}&name=${city}&area=${area}`;
+     // http://192.168.3.174:5174/
+
+    const url = `http://localhost:8088/crawl?id=${cityId}&name=${city}&area=${area}`;
     setSpinning(true);
     fetch(url)
       .then((res) => {
         return res.json();
       })
       .then((res) => {
-        setData(res);
+        if (res.code === 200) {
+          setData(res.data);
+        } else {
+          messageApi.error(res.msg);
+        }
         setSpinning(false);
       });
   };
@@ -126,7 +132,7 @@ function Index() {
     const fileName = city + area + ".xlsx";
     const worksheet = XLSX.utils.json_to_sheet(selectDatas);
     const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, worksheet, 'Sheet1');
+    XLSX.utils.book_append_sheet(wb, worksheet, "Sheet1");
     XLSX.writeFile(wb, fileName);
   };
   return (

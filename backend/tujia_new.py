@@ -12,9 +12,9 @@ results = []
 
 
 # 获取元素
-def get_element(driver, type, value, mult):
+def get_element(driver, type, value, mult, second=10):
     # 最多等待10秒
-    wait = WebDriverWait(driver, 10)
+    wait = WebDriverWait(driver, second)
     wait.until(EC.presence_of_element_located((type, value)))
     if mult:
         return driver.find_elements(type, value)
@@ -27,11 +27,31 @@ def scroll_down(driver):
     driver.execute_script("window.scrollBy(0,document.body.scrollHeight)")
 
 
+def login(driver, cityId):
+    driver.get(
+        "https://m.tujia.com/passport/RegisterPage?srcurl=https%3A%2F%2Fm.tujia.com%2Fhotel_city{0}".format(cityId))
+    username = get_element(driver, By.CLASS_NAME, "tel-number", False)
+    usernameInput = get_element(username, By.TAG_NAME, "input", False)
+    password = get_element(driver, By.CLASS_NAME, "input-password", False)
+    passwordInput = get_element(password, By.TAG_NAME, "input", False)
+    checkbox = get_element(driver, By.CLASS_NAME, "tj-checkbox", False)
+    submit = get_element(driver, By.CLASS_NAME, "btn-login", False)
+    usernameInput.send_keys("19163540634")
+    time.sleep(1)
+    checkbox.click()
+    passwordInput.send_keys("shanshan22")
+    time.sleep(1)
+    submit.click()
+
 def start(cityId, cityName, areaName):
     driver = webdriver.Chrome()
-    driver.get("https://m.tujia.com/hotel_city{}".format(cityId))
+    # 先跳转登录页
+    login(driver, cityId)
+
+    # 延迟100秒，判断是否已经跳转到首页
+    play_btn = get_element(driver, By.CLASS_NAME, "city-label", False, 100)
+    time.sleep(2)
     if len(areaName) != 0:
-        play_btn = get_element(driver, By.CLASS_NAME, "city-label", False)
         time.sleep(1)
         play_btn.click()
         search_input = get_element(driver, By.CLASS_NAME, "search-input", True)
@@ -39,18 +59,18 @@ def start(cityId, cityName, areaName):
         time.sleep(1)
         search_input[1].send_keys(Keys.ENTER)
     time.sleep(2)
-    url = driver.current_url + "7-0,200/"
+    url = driver.current_url.replace("/?", "") + "/7-0,200/"
     driver.execute_script("window.location.replace('{0}')".format(url))
     # 滚动加载10页
-    for _ in range(2):
+    for _ in range(1):
         scroll_down(driver)
     lists = get_element(driver, By.CLASS_NAME, "unit-item-padding", True)
     hrefs = []
     for item in lists:
         href = item.find_element(By.TAG_NAME, 'a').get_attribute('href')
         hrefs.append(href)
+    get_details(driver, hrefs)
     driver.quit()
-    get_details(hrefs)
 
     # 写入文件
     fileName = "datas/{0}.json".format(cityName + areaName)
@@ -68,9 +88,7 @@ def read_file(fileName):
         return json.load(f)
 
 
-def craw_detail(href):
-    driver = webdriver.Chrome()
-    driver.get(href)
+def craw_detail(driver, href):
     # 获取图片或者视频
     swipe = get_element(driver, By.CLASS_NAME, "header-swiper-content", False)
     time.sleep(2)
@@ -92,14 +110,24 @@ def craw_detail(href):
         "videoUrl": videoUrl
     })
 
-    driver.quit()
 
+def get_details(driver, hrefs):
+    print(hrefs)
+    # 不开启多线程，就一个页签慢慢打开
+    for href in hrefs:
+        driver.execute_script("window.open('{0}', '_blank');".format(href))
+        # 获取所有窗口句柄
+        all_handles = driver.window_handles
+        # 切换到新打开的页签
+        new_tab_handle = all_handles[1]
+        driver.switch_to.window(new_tab_handle)
+        craw_detail(driver, href)
+        # 关闭当前页签
+        driver.close()
 
-def get_details(hrefs):
-    # 多线程
-    with ThreadPoolExecutor(max_workers=5) as t:
-        for href in hrefs:
-            t.submit(craw_detail, href)
+        # 切换回原来的页面
+        driver.switch_to.window(all_handles[0])
+        time.sleep(1)
 
 
 # 获取媒体文件
@@ -127,3 +155,5 @@ def get_data(cityId, cityName, areaName):
         return start(cityId, cityName, areaName)
 
 
+if __name__ == "__main__":
+    login(webdriver.Chrome(), 44)
